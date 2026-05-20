@@ -87,6 +87,44 @@ end)
 
 -- Bot automation
 
+local player = game:GetService("Players").LocalPlayer
+if player then
+    local backpack = player:FindFirstChildOfClass("Backpack")
+    if backpack then
+        for _, item in ipairs(backpack:GetChildren()) do 
+            if item:IsA('Tool') or item:IsA('HopperBin') then 
+                item:Destroy() 
+            end 
+        end
+    end
+    
+    local character = player.Character
+    if character then
+        for _, item in ipairs(character:GetChildren()) do
+            if item:IsA('Tool') or item:IsA('HopperBin') then
+                item:Destroy()
+            end
+        end
+    end
+end
+
+if fireproximityprompt then 
+    if execCmd then execCmd("uninstantproximityprompts") end 
+    
+    local ProximityPromptService = game:GetService("ProximityPromptService")
+    
+    PromptButtonHoldBegan = ProximityPromptService.PromptButtonHoldBegan:Connect(function(prompt) 
+        fireproximityprompt(prompt) 
+    end) 
+else 
+    if notify then
+        notify('Incompatible Exploit','Your exploit does not support this command') 
+    else
+        print('Incompatible Exploit')
+    end
+end
+
+
 local allowedNames = {
     ["Floppy Disc Drive"] = true,
     ["FloppyDiscPickup"] = true
