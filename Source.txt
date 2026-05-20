@@ -1,0 +1,209 @@
+-- Configuration Settings
+local TOGGLE_KEY = Enum.KeyCode.R
+local SPAM_KEY = Enum.KeyCode.F
+local SECOND_KEY = Enum.KeyCode.E
+local SPAM_SECOND_KEY = true -- Set to false to disable E key spam
+
+local HOLD_TIME = 0.01
+local DELAY_BETWEEN = 0
+
+-- Services
+local UserInputService = game:GetService("UserInputService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- Global State
+local _G = getgenv and getgenv() or _G
+_G.SpammerActive = true
+
+-- Thread 1: Automated Loops (Shredder, Floppy Pickup, & God Mode)
+task.spawn(function()
+    local areaEvent = ReplicatedStorage:WaitForChild("Events"):WaitForChild("AreaChangeEvent")
+    local args = { "Spawn", false }
+    
+    while true do
+        -- 1. Shredder Automation
+        local interactables = workspace:FindFirstChild("Interactables")
+        if interactables then
+            for _, drive in ipairs(interactables:GetChildren()) do 
+                if drive.Name == "Floppy Disc Drive" then 
+                    if drive:FindFirstChild("Base") and drive.Base:FindFirstChild("Attachment") and drive.Base.Attachment:FindFirstChild("Prompt") then 
+                        drive.Base.Attachment.Prompt.Enabled = true 
+                    end 
+                end 
+            end
+        end
+
+        -- 2. Floppy Disc Pickup Automation
+        if interactables and interactables:FindFirstChild("FloppyDiscPickups") then
+            for _, disc in ipairs(interactables.FloppyDiscPickups:GetChildren()) do 
+                if disc:FindFirstChild("Handle") and disc.Handle:FindFirstChild("ProximityPrompt") then 
+                    disc.Handle.ProximityPrompt.Enabled = true 
+                end 
+            end
+        end
+
+        -- 3. Invincibility Exploit
+        areaEvent:FireServer(unpack(args))
+
+        task.wait(0.1) -- Prevents game crashing/freezing
+    end
+end)
+
+-- Thread 2: Keybind Toggle Listener
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end 
+    
+    if input.KeyCode == TOGGLE_KEY then 
+        _G.SpammerActive = not _G.SpammerActive 
+        print("Spammer Status: " .. (_G.SpammerActive and "ENABLED" or "DISABLED")) 
+    end 
+end)
+
+-- Thread 3: Key Spammer Action
+task.spawn(function()
+    while true do 
+        if _G.SpammerActive then 
+            -- Press Keys Down
+            VirtualInputManager:SendKeyEvent(true, SPAM_KEY, false, game) 
+            if SPAM_SECOND_KEY then 
+                VirtualInputManager:SendKeyEvent(true, SECOND_KEY, false, game) 
+            end 
+            
+            task.wait(HOLD_TIME) 
+            
+            -- Release Keys
+            VirtualInputManager:SendKeyEvent(false, SPAM_KEY, false, game) 
+            if SPAM_SECOND_KEY then 
+                VirtualInputManager:SendKeyEvent(false, SECOND_KEY, false, game) 
+            end 
+            
+            task.wait(DELAY_BETWEEN) 
+        else 
+            task.wait(0.1) 
+        end 
+    end 
+end)
+
+-- Bot automation
+
+local allowedNames = {
+    ["Floppy Disc Drive"] = true,
+    ["FloppyDiscPickup"] = true
+}
+
+
+local function isAllowed(prompt)
+    local ancestor = prompt.Parent
+    while ancestor and ancestor ~= game do
+        if allowedNames[ancestor.Name] then
+            return true
+        end
+        ancestor = ancestor.Parent
+    end
+    return false
+end
+
+
+for _, v in ipairs(game:GetDescendants()) do
+    if v:IsA("ProximityPrompt") then
+        if not isAllowed(v) then
+            v:Destroy()
+        end
+    end
+end
+
+
+local workspaceConnection
+workspaceConnection = workspace.DescendantAdded:Connect(function(v)
+    if v:IsA("ProximityPrompt") then
+        
+        task.defer(function()
+            if v and v.Parent and not isAllowed(v) then
+                v:Destroy()
+            end
+        end)
+    end
+end)
+
+local POS_1 = Vector3.new(-16, -33, 6)
+local POS_2 = Vector3.new(91, 3, -20)
+local WAIT_TIME = 20
+local EQUIP_DELAY = 0.5 
+
+
+local Players = game:GetService("Players")
+local Player = Players.LocalPlayer
+
+
+local function teleport(position)
+    local character = Player.Character or Player.CharacterAdded:Wait()
+    local rootPart = character:WaitForChild("HumanoidRootPart", 5)
+    if rootPart then
+        rootPart.CFrame = CFrame.new(position)
+    end
+end
+
+
+local function equipAllTools()
+    local character = Player.Character or Player.CharacterAdded:Wait()
+    local backpack = Player:WaitForChild("Backpack", 5)
+    
+    if backpack then
+        for _, tool in ipairs(backpack:GetChildren()) do
+            if tool:IsA("Tool") then
+                tool.Parent = character
+            end
+        end
+    end
+end
+
+
+local function isInventoryEmpty()
+    local character = Player.Character
+    local backpack = Player:FindFirstChild("Backpack")
+
+    if backpack and #backpack:GetChildren() > 0 then
+        return false
+    end
+    
+
+    if character then
+        for _, item in ipairs(character:GetChildren()) do
+            if item:IsA("Tool") then
+                return false
+            end
+        end
+    end
+    
+    return true
+end
+
+
+task.spawn(function()
+    while true do
+     
+        teleport(POS_1)
+        task.wait(WAIT_TIME)
+        
+   
+        teleport(POS_2)
+        
+       
+        task.wait(EQUIP_DELAY)
+        
+      
+        equipAllTools()
+        
+        task.wait(WAIT_TIME)
+        
+      
+        if not isInventoryEmpty() then
+            print("Tools detected. Pausing loop until inventory is empty...")
+            repeat
+                task.wait(0.5)
+            until isInventoryEmpty() 
+            print("Inventory empty. Restarting farm loop...")
+        end
+    end
+end)
